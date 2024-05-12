@@ -1,8 +1,10 @@
 <template>
-  <div class="chat-container">
-    <message-display :messages="chatStore.messages" />
-    <message-input @sendMessage="handleSendMessage" />
-  </div>
+  <MainLayout>
+    <div class="chat-container">
+      <message-display :messages="chatStore.messages" />
+      <message-input @sendMessage="handleSendMessage" />
+    </div>
+  </MainLayout>
 </template>
 
 <script setup>
@@ -11,6 +13,7 @@ import MessageDisplay from './MessageDisplay.vue';
 import MessageInput from './MessageInput.vue';
 import axios from 'axios'; // Import axios here
 import { getFirestore, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import MainLayout from "@/layouts/MainLayout.vue";
 
 const chatStore = useChatStore();
 const db = getFirestore();

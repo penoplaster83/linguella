@@ -38,6 +38,39 @@ app.post('/chat', async (req, res) => {
     }
 });
 
+app.post('/translate', async (req, res) => {
+    try {
+        const { text } = req.body;
+        // Убедитесь, что текст представлен в правильном формате
+        if (!text || typeof text !== 'string') {
+            return res.status(400).json({ error: 'Invalid text format' });
+        }
+
+        const response = await openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a helpful assistant that translates English text to Russian. " +
+                        "You need to translate the following text to Russian. Don't send any other words except the translation."
+                },
+                {
+                    role: "user",
+                    content: text
+                }
+            ],
+            temperature: 0.5,
+            max_tokens: 60,
+            top_p: 1,
+        });
+
+        res.json({ translation: response.choices[0].message.content });
+    } catch (error) {
+        console.error('Failed to communicate with OpenAI:', error);
+        res.status(500).json({ error: 'Failed to communicate with OpenAI', details: error.message });
+    }
+});
+
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });

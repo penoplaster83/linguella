@@ -1,13 +1,7 @@
 <template>
   <div id="app">
-    <nav>
-      <router-link to="/">ChatScreen</router-link> |
-      <router-link to="/new-screen">New Screen</router-link>
-    </nav>
     <router-view/>
-
   </div>
-
 </template>
 
 <script>
