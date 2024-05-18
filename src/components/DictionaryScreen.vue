@@ -5,15 +5,21 @@
       <div>
         <h3>Add new word</h3>
         <input type="text" v-model="newWord" placeholder="Enter a word or phrase" required/>
+        <input type="checkbox" v-model="generateImage" /> Generate image
         <button @click="addWord">Add</button>
       </div>
       <div>
         <h3>Word list</h3>
         <ul>
           <li v-for="(word, index) in dictionaryStore.words" :key="index">
-            <p>Word: {{ word.text }}</p>
-            <p>Translation: {{ word.translation }}</p>
-            <p>Example sentence: {{ word.example }}</p>
+            <div style="display: flex; align-items: center;">
+              <img :src="word.image" alt="Word image" style="width: 100px; height: 100px; object-fit: cover; margin-right: 1rem;" />
+              <div>
+                <p>Word: {{ word.text }}</p>
+                <p>Translation: {{ word.translation }}</p>
+                <p>Example sentence: {{ word.example }}</p>
+              </div>
+            </div>
           </li>
         </ul>
       </div>
@@ -25,35 +31,54 @@
 import {ref, onMounted} from 'vue';
 import axios from 'axios';
 import {useDictionaryStore} from '../stores/dictionaryStore';
-import {getAuth, onAuthStateChanged} from 'firebase/auth';
 import {getFirestore, addDoc, collection, serverTimestamp, query, where, getDocs} from 'firebase/firestore';
+import {auth} from '../firebase';
 import MainLayout from "@/layouts/MainLayout.vue";
+import {onAuthStateChanged} from "firebase/auth";
 
 const newWord = ref('');
 const dictionaryStore = useDictionaryStore();
 const db = getFirestore();
 const wordsCollection = collection(db, 'words');
 
-const auth = getAuth();
-const user = auth.currentUser;
+let user = null;
+
+onAuthStateChanged(auth, (currentUser) => {
+  user = currentUser;
+  if (user && dictionaryStore.words.length === 0) {
+    fetchWords();
+  }
+});
+
+const generateImage = ref(true);
 
 async function addWord() {
   try {
     const response = await axios.post('http://localhost:3001/translate', {
       text: newWord.value
     });
+
+    let imageUrl = '';
+    if (generateImage.value) {
+      // Получение изображения с сервера
+      const imageResponse = await axios.post('http://localhost:3001/generate-image', {
+        prompt: newWord.value
+      });
+      imageUrl = imageResponse.data.imageUrl;
+    }
+
     const word = {
       text: newWord.value,
       translation: response.data.translation,
-      example: response.data.example || 'No', // Set a default value if example is undefined
-      userId: user.uid // Добавить идентификатор пользователя
+      example: response.data.example,
+      userId: user.uid,
+      image: imageUrl
     };
+
     dictionaryStore.addWord(word);
     newWord.value = '';
 
-    // Check for all necessary fields
-    if (word.text && word.translation && word.example) {
-      // Add word to Firestore
+    if (word.text && word.translation && word.example && word.userId) {
       const firestoreWord = {
         ...word,
         timestamp: serverTimestamp()
@@ -66,36 +91,21 @@ async function addWord() {
     console.error('Error translating word:', error);
   }
 }
-
 async function fetchWords() {
-  // Создать запрос для получения только слов текущего пользователя
   const q = query(wordsCollection, where("userId", "==", user.uid));
 
   const querySnapshot = await getDocs(q);
   querySnapshot.forEach((doc) => {
-    // doc.data() is never undefined for query doc snapshots
     console.log(doc.id, " => ", doc.data());
-    // Добавить слово в хранилище
     dictionaryStore.addWord(doc.data());
   });
 }
 
-onAuthStateChanged(auth, (user) => {
-  if (user && dictionaryStore.words.length === 0) {
-    // User is signed in and the store is empty, call fetchWords
-    fetchWords();
-  } else if (!user) {
-    // User is signed out, clear the store
-    dictionaryStore.clearWords();
-  }
-});
-
 onMounted(() => {
-  if (dictionaryStore.words.length === 0) {
+  if (user && dictionaryStore.words.length === 0) {
     fetchWords();
   }
 });
-
 </script>
 
 <style scoped>
@@ -166,5 +176,11 @@ li {
 p {
   margin: 0.5rem 0;
   color: #333;
+}
+
+img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
 }
 </style>
