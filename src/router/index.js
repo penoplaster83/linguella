@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { getAuth } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../firebase'; // Импортируйте auth из firebase.js
 import ChatScreen from '../components/ChatScreen.vue';
 import DictionaryScreen from '../components/DictionaryScreen.vue';
 import Login from '../components/Login.vue';
@@ -37,11 +38,21 @@ const router = createRouter({
     routes
 });
 
+let authReady = false;
+
+onAuthStateChanged(auth, () => {
+    if (!authReady) {
+        authReady = true;
+    }
+});
+
 router.beforeEach((to, from, next) => {
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
-    const currentUser = getAuth().currentUser;
+    const currentUser = auth.currentUser;
 
-    if (requiresAuth && !currentUser) {
+    if (!authReady) {
+        next();
+    } else if (requiresAuth && !currentUser) {
         next('/login');
     } else if (!requiresAuth && currentUser) {
         next('/chat');
