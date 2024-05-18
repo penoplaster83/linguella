@@ -8,6 +8,13 @@ import Register from '../components/Register.vue';
 
 const routes = [
     {
+        path: '/',
+        redirect: to => {
+            // Must return a string, a { name: 'router-name' } object, or a { path: '/path' } object
+            return auth.currentUser ? '/chat' : '/login';
+        }
+    },
+    {
         path: '/login',
         name: 'Login',
         component: Login,

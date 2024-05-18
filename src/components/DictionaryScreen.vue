@@ -7,11 +7,15 @@
         <input type="text" v-model="newWord" placeholder="Enter a word or phrase" required/>
         <input type="checkbox" v-model="generateImage" /> Generate image
         <button @click="addWord">Add</button>
+        <select v-model="sortType">
+          <option value="alphabetical">Alphabetical</option>
+          <option value="dateAdded">Date added</option>
+        </select>
       </div>
       <div>
         <h3>Word list</h3>
         <ul>
-          <li v-for="(word, index) in dictionaryStore.words" :key="index">
+          <li v-for="(word, index) in sortedWords" :key="index">
             <div style="display: flex; align-items: center;">
               <img :src="word.image" alt="Word image" style="width: 100px; height: 100px; object-fit: cover; margin-right: 1rem;" />
               <div>
@@ -20,6 +24,8 @@
                 <p>Example sentence: {{ word.example }}</p>
               </div>
             </div>
+            <button @click="deleteWord(word)">Delete</button>
+            <input type="checkbox" v-model="word.learned" @change="markWordAsLearned(word)" /> Learned
           </li>
         </ul>
       </div>
@@ -28,10 +34,10 @@
 </template>
 
 <script setup>
-import {ref, onMounted} from 'vue';
+import {ref, onMounted, computed} from 'vue';
 import axios from 'axios';
 import {useDictionaryStore} from '../stores/dictionaryStore';
-import {getFirestore, addDoc, collection, serverTimestamp, query, where, getDocs} from 'firebase/firestore';
+import {getFirestore, doc, addDoc, getDocs, deleteDoc, collection, serverTimestamp, query, where} from 'firebase/firestore';
 import {auth} from '../firebase';
 import MainLayout from "@/layouts/MainLayout.vue";
 import {onAuthStateChanged} from "firebase/auth";
@@ -50,7 +56,31 @@ onAuthStateChanged(auth, (currentUser) => {
   }
 });
 
+const sortType = ref('alphabetical');
 const generateImage = ref(true);
+
+const sortedWords = computed(() => {
+  let words = [...dictionaryStore.words];
+  if (sortType.value === 'alphabetical') {
+    words.sort((a, b) => a.text.localeCompare(b.text));
+  } else if (sortType.value === 'dateAdded') {
+    words.sort((a, b) => b.timestamp - a.timestamp);
+  }
+  return words;
+});
+
+async function deleteWord(word) {
+  dictionaryStore.deleteWord(word);
+  const wordRef = doc(db, 'words', word.id);
+  await deleteDoc(wordRef);
+}
+
+async function markWordAsLearned(word) {
+  const wordRef = doc(db, 'words', word.id);
+  await updateDoc(wordRef, { learned: word.learned });
+}
+
+
 
 async function addWord() {
   try {
