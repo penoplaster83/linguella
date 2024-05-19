@@ -2,7 +2,11 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import axios from 'axios';
 import OpenAI from 'openai';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
@@ -12,13 +16,16 @@ app.use(bodyParser.json());
 const port = process.env.PORT || 3001;
 
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,  // Используйте переменную окружения для API ключа
+    apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Определяем __dirname для ES6 модулей
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 app.post('/chat', async (req, res) => {
     try {
         const { messages } = req.body;
-        // Убедитесь, что все сообщения имеют нужные поля
         if (!messages || messages.some(msg => typeof msg.role !== 'string' || typeof msg.content !== 'string')) {
             return res.status(400).json({ error: 'Invalid message format' });
         }
@@ -41,7 +48,6 @@ app.post('/chat', async (req, res) => {
 app.post('/translate', async (req, res) => {
     try {
         const { text } = req.body;
-        // Убедитесь, что текст представлен в правильном формате
         if (!text || typeof text !== 'string') {
             return res.status(400).json({ error: 'Invalid text format' });
         }
@@ -71,7 +77,6 @@ app.post('/translate', async (req, res) => {
             top_p: 1,
         });
 
-        // Разбор ответа от сервера
         const content = response.choices[0].message.content;
         const translationMatch = content.match(/{{{translate}}}(.*?){{{\/translate}}}/);
         const exampleMatch = content.match(/{{{example}}}(.*?){{{\/example}}}/);
@@ -96,15 +101,26 @@ app.post('/generate-image', async (req, res) => {
             prompt: prompt,
             model: "dall-e-2",
             n: 1,
-            size: "512x512",
+            size: "256x256"
         });
 
-        res.json({ imageUrl: response.data[0].url });
+        const imageUrl = response.data[0].url;
+
+        // Скачиваем изображение на сервер
+        const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+        const imagePath = path.resolve(__dirname, 'images', `${Date.now()}.png`);
+        fs.writeFileSync(imagePath, imageResponse.data);
+
+        // Возвращаем URL скачанного изображения
+        res.json({ imageUrl: `http://localhost:${port}/images/${path.basename(imagePath)}` });
     } catch (error) {
         console.error('Failed to communicate with OpenAI:', error);
         res.status(500).json({ error: 'Failed to communicate with OpenAI', details: error.message });
     }
 });
+
+// Статическая раздача файлов из директории images
+app.use('/images', express.static(path.resolve(__dirname, 'images')));
 
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
