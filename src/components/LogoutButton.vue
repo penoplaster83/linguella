@@ -1,3 +1,4 @@
+<!-- src/components/LogoutButton.vue -->
 <template>
   <div class="logout-button" v-if="user">
     <button @click="logout">Logout</button>
@@ -5,7 +6,6 @@
 </template>
 
 <script setup>
-import LogoutButton from './LogoutButton.vue';
 import { getAuth, signOut } from 'firebase/auth';
 import { useRouter } from 'vue-router';
 
@@ -14,7 +14,7 @@ const router = useRouter();
 async function logout() {
   const auth = getAuth();
   await signOut(auth);
-  router.push('/login');
+  await router.push('/login');
 }
 </script>
 

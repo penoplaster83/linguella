@@ -23,6 +23,9 @@ export const useDictionaryStore = defineStore('dictionary', {
         },
         clearWords() {
             this.words = [];
+        },
+        resetStore() {
+            Object.assign(this.$state, this.$initState());
         }
     }
 });
