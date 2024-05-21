@@ -4,19 +4,26 @@
       <h2>Dictionary</h2>
       <div class="add-word-section">
         <h3>Add new word</h3>
-        <input type="text" v-model="newWord" placeholder="Enter a word or phrase" required />
-        <input type="checkbox" v-model="generateImage" /> Generate image
-        <button @click="addWord" :disabled="loading">
-          <span v-if="loading" class="spinner"></span>
-          <span v-else>Add</span>
-        </button>
-        <select v-model="sortType">
-          <option value="alphabetical">Alphabetical</option>
-          <option value="dateAdded">Date added</option>
-        </select>
+        <div class="input-row">
+          <input type="text" v-model="newWord" placeholder="Enter a word or phrase" required />
+          <button @click="addWord" :disabled="loading">
+            <span v-if="loading" class="spinner"></span>
+            <span v-else>Add</span>
+          </button>
+        </div>
+        <div class="option-row">
+          <label for="generateImage">Generate image</label>
+          <input id="generateImage" type="checkbox" v-model="generateImage" />
+        </div>
       </div>
       <div class="word-list-section">
-        <h3>Word list</h3>
+        <div class="word-list-header">
+          <h3>Word list</h3>
+          <select v-model="sortType">
+            <option value="alphabetical">Alphabetical</option>
+            <option value="dateAdded">Date added</option>
+          </select>
+        </div>
         <ul>
           <li v-for="(word, index) in sortedWords" :key="index">
             <div class="word-item">
@@ -62,16 +69,16 @@ onAuthStateChanged(auth, (currentUser) => {
     fetchWords();
   }
 });
-
-const sortType = ref('alphabetical');
 const generateImage = ref(true);
+
+const sortType = ref('dateAdded'); // Измените на 'dateAdded'
 
 const sortedWords = computed(() => {
   let words = [...dictionaryStore.words];
   if (sortType.value === 'alphabetical') {
     words.sort((a, b) => a.text.localeCompare(b.text));
   } else if (sortType.value === 'dateAdded') {
-    words.sort((a, b) => b.timestamp - a.timestamp);
+    words.sort((a, b) => b.timestamp - a.timestamp); // Измените на b.timestamp - a.timestamp
   }
   return words;
 });
@@ -185,8 +192,8 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  background-color: #f5f5f5;
+  padding: 30px;
+  background-color: #ececec;
 }
 
 h2 {
@@ -194,9 +201,14 @@ h2 {
   font-size: 2.5rem;
   margin-bottom: 2rem;
 }
+h3 {
+  color: #333;
+  margin-top: 0.2rem;
+  margin-bottom: 3rem;
+}
 
 .add-word-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -208,19 +220,39 @@ h2 {
   margin-bottom: 1rem;
 }
 
+.input-row, .option-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.word-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.1rem;
+}
+.add-word-section{
+  padding: 20px;
+  border: 1px solid #cbcbcb; /* Изменено здесь */
+  background: #f6f6f6;
+  border-radius: 10px;
+}
 .add-word-section input[type="text"],
 .add-word-section select {
   font-family: 'Outfit', sans-serif;
-  padding: 0.5rem;
-  margin-bottom: 1rem;
+  font-size: 16px;
+  padding: 0.6rem;
+  //margin-bottom: 0.1rem;
   border: 1px solid #ccc;
   border-radius: 4px;
   width: 100%;
 }
 
 .add-word-section button {
-  font-weight: 500;
-  padding: 0.5rem 1rem;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
   color: #fff;
   background-color: #007bff;
   border: none;
@@ -228,6 +260,7 @@ h2 {
   cursor: pointer;
   display: flex;
   align-items: center;
+  margin-left: 1rem;
 }
 
 .add-word-section button:hover {
